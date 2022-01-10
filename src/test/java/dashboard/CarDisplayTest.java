@@ -115,13 +115,41 @@ public class CarDisplayTest {
     }
 
     @Test
-    void carDashboard_speedAndGearAndRpmCombinationIsNotReasonable_illegalStateExceptionThrown() {
+    void carDashboard_speedAndGearAndRpmCombinationIsNotReasonableDueToHighSpeed_illegalStateExceptionThrown() {
         CarDisplay manualTransmissionCarDisplay = new CarDisplay(false);
         IllegalStateException thrown = assertThrows(
                 IllegalStateException.class,
                 () -> manualTransmissionCarDisplay.carDashboard("200|2000|0|2|true|false|true")
         );
         assertEquals("Speed does not correlate to the current gear.", thrown.getMessage());
+    }
+
+    @Test
+    void carDashboard_speedAndGearAndRpmCombinationIsNotReasonableDueToRelativelyLowAcceleration_illegalStateExceptionThrown() {
+        CarDisplay manualTransmissionCarDisplay = new CarDisplay(false);
+        IllegalStateException thrown = assertThrows(
+                IllegalStateException.class,
+                () -> manualTransmissionCarDisplay.carDashboard("20|5000|1.1|2|true|false|true")
+        );
+        assertEquals("Measured high RPM, relatively low speed without notable acceleration or deceleration.", thrown.getMessage());
+    }
+
+    @Test
+    void carDashboard_speedAndGearAndRpmCombinationIsNotReasonableDueToRelativelyLowRpm_illegalStateExceptionThrown() {
+        CarDisplay manualTransmissionCarDisplay = new CarDisplay(false);
+        IllegalStateException thrown = assertThrows(
+                IllegalStateException.class,
+                () -> manualTransmissionCarDisplay.carDashboard("100|2000|-5.7|2|true|false|true")
+        );
+        assertEquals("Measured low RPM, relatively high speed with notable acceleration or deceleration.", thrown.getMessage());
+    }
+
+    @Test
+    void carDashboard_speedAndGearAndRpmCombinationIsNotReasonableButGearIsInNeutral_noExceptionIsThrown() {
+        CarDisplay manualTransmissionCarDisplay = new CarDisplay(false);
+        assertDoesNotThrow(
+                () -> manualTransmissionCarDisplay.carDashboard("0|6000|0|N|true|false|true")
+        );
     }
 
     @Test

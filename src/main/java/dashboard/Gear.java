@@ -3,16 +3,16 @@ package dashboard;
 import java.util.Arrays;
 
 public enum Gear {
-    P("P", true, false, 0, 0, 0, 3000),
-    R("R", true, true, -20, 0, 800, 4000),
-    N("N", true, false, 0, 0, 800, 3000),
+    P("P", true, false, 0, 0, 0, 8000),
+    R("R", true, true, -20, 0, 850, 8000),
+    N("N", true, true, 0, 0, 800, 8000),
     D("D", true, false, 0, 350, 800, 8000),
-    G1("1", true, true, 0, 70, 800, 8000),
-    G2("2", true, true, 0, 110, 800, 8000),
-    G3("3", false, true, 20, 140, 800, 8000),
-    G4("4", false, true, 35, 170, 800, 8000),
-    G5("5", false, true, 45, 240, 800, 8000),
-    G6("6", false, true, 60, 350, 800, 8000);
+    G1("1", true, true, 0, 70, 850, 8000),
+    G2("2", true, true, 0, 110, 900, 8000),
+    G3("3", false, true, 20, 140, 950, 8000),
+    G4("4", false, true, 35, 170, 1000, 8000),
+    G5("5", false, true, 45, 240, 1050, 8000),
+    G6("6", false, true, 60, 350, 1100, 8000);
 
     private final String value;
     private final boolean applicableToAutomatic;
@@ -39,6 +39,11 @@ public enum Gear {
         this.highestRpm = highestRpm;
     }
 
+    /**
+     * Parses a gear based on its value.
+     * @param value the gear in textual format
+     * @return the associated gear
+     */
     public static Gear byValue(String value) {
         return Arrays.stream(values())
                 .filter(gear -> gear.value.equalsIgnoreCase(value))
@@ -46,17 +51,27 @@ public enum Gear {
                 .orElseThrow(IllegalArgumentException::new);
     }
 
-    public void checkIfAcceptable(boolean automatic, int speed, int rpm) {
-        if ((automatic && !applicableToAutomatic) || (!automatic && !applicableToManual)) {
-            throw new IllegalStateException("Invalid gear for the selected transmission type.");
-        }
+    public boolean isApplicableToAutomatic() {
+        return applicableToAutomatic;
+    }
 
-        if (speed < lowestSpeed || speed > highestSpeed) {
-            throw new IllegalStateException("Speed does not correlate to the current gear.");
-        }
+    public boolean isApplicableToManual() {
+        return applicableToManual;
+    }
 
-        if (rpm < lowestRpm || rpm > highestRpm) {
-            throw new IllegalStateException("RPM does not correlate to the current gear.");
-        }
+    public int getLowestSpeed() {
+        return lowestSpeed;
+    }
+
+    public int getHighestSpeed() {
+        return highestSpeed;
+    }
+
+    public int getLowestRpm() {
+        return lowestRpm;
+    }
+
+    public int getHighestRpm() {
+        return highestRpm;
     }
 }

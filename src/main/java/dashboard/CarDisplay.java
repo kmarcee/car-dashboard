@@ -3,7 +3,6 @@ package dashboard;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -17,11 +16,11 @@ public class CarDisplay implements DataDisplay {
     private static final int LOWEST_SPEED = -20;
     private static final int HIGHEST_SPEED = 350;
 
-    private final boolean automaticGear;
+    private final boolean automaticTransmission;
     private final DashboardData[] historicalValues;
 
-    CarDisplay(boolean hasAutomaticGear) {
-        automaticGear = hasAutomaticGear;
+    CarDisplay(boolean hasAutomaticTransmission) {
+        automaticTransmission = hasAutomaticTransmission;
         historicalValues = new DashboardData[HISTORY_MOVING_WINDOW_LENGTH];
     }
 
@@ -70,11 +69,45 @@ public class CarDisplay implements DataDisplay {
     }
 
     /**
-     * Validates the correlational constraints between parameters.
+     * Checks how the actual parameter values correlate to each other, i.e. a kind of sanity check.
+     * If an anomaly - i.e. an unreasonable combination of values - is detected, an exception is thrown.
      * @param dashboardData the parsed input data
      */
     private void validateCorrelations(@NotNull DashboardData dashboardData) {
-        dashboardData.getGear().checkIfAcceptable(automaticGear, dashboardData.getSpeed(), dashboardData.getRpm());
+        if ((automaticTransmission && !dashboardData.getGear().isApplicableToAutomatic()) ||
+                (!automaticTransmission && !dashboardData.getGear().isApplicableToManual())) {
+            throw new IllegalStateException("Invalid gear for the selected transmission type.");
+        }
+
+        if (dashboardData.getSpeed() < dashboardData.getGear().getLowestSpeed() ||
+                dashboardData.getSpeed() > dashboardData.getGear().getHighestSpeed()) {
+            throw new IllegalStateException("Speed does not correlate to the current gear.");
+        }
+
+        if (dashboardData.getRpm() < dashboardData.getGear().getLowestRpm() ||
+                dashboardData.getRpm() > dashboardData.getGear().getHighestRpm()) {
+            throw new IllegalStateException("RPM does not correlate to the current gear.");
+        }
+
+        if (Math.abs(dashboardData.getAcceleration()) < 5.0 &&
+                dashboardData.getRpm() > ((dashboardData.getGear().getLowestRpm() + dashboardData.getGear().getHighestRpm()) / 2) &&
+                dashboardData.getSpeed() < ((dashboardData.getGear().getLowestSpeed() + dashboardData.getGear().getHighestSpeed()) / 2) &&
+                dashboardData.getGear() != Gear.N
+        ) {
+            throw new IllegalStateException(
+                    "Measured high RPM, relatively low speed without notable acceleration or deceleration."
+            );
+        }
+
+        if (Math.abs(dashboardData.getAcceleration()) > 5.0 &&
+                dashboardData.getRpm() < ((dashboardData.getGear().getLowestRpm() + dashboardData.getGear().getHighestRpm()) / 2) &&
+                dashboardData.getSpeed() > ((dashboardData.getGear().getLowestSpeed() + dashboardData.getGear().getHighestSpeed()) / 2) &&
+                dashboardData.getGear() != Gear.N
+        ) {
+            throw new IllegalStateException(
+                    "Measured low RPM, relatively high speed with notable acceleration or deceleration."
+            );
+        }
     }
 
     /**
