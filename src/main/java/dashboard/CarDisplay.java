@@ -74,21 +74,30 @@ public class CarDisplay implements DataDisplay {
      * @param dashboardData the parsed input data
      */
     private void validateCorrelations(@NotNull DashboardData dashboardData) {
-        if ((automaticTransmission && !dashboardData.getGear().isApplicableToAutomatic()) ||
-                (!automaticTransmission && !dashboardData.getGear().isApplicableToManual())) {
-            throw new IllegalStateException("Invalid gear for the selected transmission type.");
-        }
+        checkTransmissionType(dashboardData);
+        checkIfSpeedIsWithinGearRange(dashboardData);
+        checkIfRpmIsWithinGearRange(dashboardData);
+        checkIfRpmIsReasonableForSpeedAndAcceleration(dashboardData);
+    }
 
-        if (dashboardData.getSpeed() < dashboardData.getGear().getLowestSpeed() ||
-                dashboardData.getSpeed() > dashboardData.getGear().getHighestSpeed()) {
-            throw new IllegalStateException("Speed does not correlate to the current gear.");
-        }
+    private void checkIfRpmIsReasonableForSpeedAndAcceleration(@NotNull DashboardData dashboardData) {
+        checkForLowAcceleration(dashboardData);
+        checkForHighAcceleration(dashboardData);
+    }
 
-        if (dashboardData.getRpm() < dashboardData.getGear().getLowestRpm() ||
-                dashboardData.getRpm() > dashboardData.getGear().getHighestRpm()) {
-            throw new IllegalStateException("RPM does not correlate to the current gear.");
+    private void checkForHighAcceleration(@NotNull DashboardData dashboardData) {
+        if (Math.abs(dashboardData.getAcceleration()) > 5.0 &&
+                dashboardData.getRpm() < ((dashboardData.getGear().getLowestRpm() + dashboardData.getGear().getHighestRpm()) / 2) &&
+                dashboardData.getSpeed() > ((dashboardData.getGear().getLowestSpeed() + dashboardData.getGear().getHighestSpeed()) / 2) &&
+                dashboardData.getGear() != Gear.N
+        ) {
+            throw new IllegalStateException(
+                    "Measured low RPM, relatively high speed with notable acceleration or deceleration."
+            );
         }
+    }
 
+    private void checkForLowAcceleration(@NotNull DashboardData dashboardData) {
         if (Math.abs(dashboardData.getAcceleration()) < 5.0 &&
                 dashboardData.getRpm() > ((dashboardData.getGear().getLowestRpm() + dashboardData.getGear().getHighestRpm()) / 2) &&
                 dashboardData.getSpeed() < ((dashboardData.getGear().getLowestSpeed() + dashboardData.getGear().getHighestSpeed()) / 2) &&
@@ -98,15 +107,26 @@ public class CarDisplay implements DataDisplay {
                     "Measured high RPM, relatively low speed without notable acceleration or deceleration."
             );
         }
+    }
 
-        if (Math.abs(dashboardData.getAcceleration()) > 5.0 &&
-                dashboardData.getRpm() < ((dashboardData.getGear().getLowestRpm() + dashboardData.getGear().getHighestRpm()) / 2) &&
-                dashboardData.getSpeed() > ((dashboardData.getGear().getLowestSpeed() + dashboardData.getGear().getHighestSpeed()) / 2) &&
-                dashboardData.getGear() != Gear.N
-        ) {
-            throw new IllegalStateException(
-                    "Measured low RPM, relatively high speed with notable acceleration or deceleration."
-            );
+    private void checkIfRpmIsWithinGearRange(@NotNull DashboardData dashboardData) {
+        if (dashboardData.getRpm() < dashboardData.getGear().getLowestRpm() ||
+                dashboardData.getRpm() > dashboardData.getGear().getHighestRpm()) {
+            throw new IllegalStateException("RPM does not correlate to the current gear.");
+        }
+    }
+
+    private void checkIfSpeedIsWithinGearRange(@NotNull DashboardData dashboardData) {
+        if (dashboardData.getSpeed() < dashboardData.getGear().getLowestSpeed() ||
+                dashboardData.getSpeed() > dashboardData.getGear().getHighestSpeed()) {
+            throw new IllegalStateException("Speed does not correlate to the current gear.");
+        }
+    }
+
+    private void checkTransmissionType(@NotNull DashboardData dashboardData) {
+        if ((automaticTransmission && !dashboardData.getGear().isApplicableToAutomatic()) ||
+                (!automaticTransmission && !dashboardData.getGear().isApplicableToManual())) {
+            throw new IllegalStateException("Invalid gear for the selected transmission type.");
         }
     }
 
